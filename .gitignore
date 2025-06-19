@@ -1,0 +1,15 @@
+# use glob syntax
+syntax: glob
+
+MPI_gizmo_mult_big.cpp
+
+*.optrpt
+*.pyc
+*.hdf5
+*.npy
+*.exe
+.vscode
+*.o
+std*
+demo
+Test_Field*
