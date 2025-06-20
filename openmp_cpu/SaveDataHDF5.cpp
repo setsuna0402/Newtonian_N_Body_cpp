@@ -7,10 +7,14 @@
 /  Input:
 /  Vel  (Dynamical array) : Velocity of each particle (Size: N x 3)
 /  Mass (Dynamical array) : Mass of each particle (Size: N)
+/  Pos  (Dynamical array) : Position of each particle (Size: N x 3)
+/  Acc  (Dynamical array) : Acceleration of each particle (Size: N x 3)
+/  E_Potential (Dynamical array) : Potential energy of each particle (Size: N)
 /  E_Kinetic (Dynamical array) : Kinetic energy of each particle (Size: N)
 /  Size (const uint ) : Number of particles
-
-
+/  Num_step (const uint) : The number of evolved steps
+/  TimeStep (const real) : The time step of the simulation
+/  Time (const real) : The total time of the simulation
 ************************************************************************/
 #include "macros_and_parameters.h"
 #include "Header.h"
