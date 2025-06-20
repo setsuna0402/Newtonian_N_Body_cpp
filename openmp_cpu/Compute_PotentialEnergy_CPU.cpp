@@ -19,23 +19,24 @@
 using namespace std;
 
 // Compute the potential energy for each particles
-void Compute_PotentialEnergy_CPU(real (*Pos)[3], real *E_Potential,
+real Compute_PotentialEnergy_CPU(real (*Pos)[3], real *E_Potential,
                                  real *Mass, const uint Size){
     static uint call_counter = 0;
-    if (call_counter == 0)
-        cout << "Which function is running?   " << __func__ << endl;
+    if (call_counter == 0) cout << "Which function is running?   " << __func__ << endl;
     const float eps2 = SOFTEN * SOFTEN; // the soften term in the soften gravity method
-    real dr[3] = {0, 0, 0};  //
+    real dr[3] = {0, 0, 0};  // position vector from i-th particle to j-th particle
     real r = 0.0;
+    real E_Potential_total = 0.0; // total potential energy of the system
 
     // calculate the potential energy for the i-th particle from all j particle
     // dr_ij : Position vector points to j-th particle from the i-th particle
 #ifdef OPEN_MP
-#pragma omp parallel
+    #pragma omp parallel
     {
-// dr[3] and r are private variables for each thread
-#pragma omp for private(r) firstprivate(dr)
-#endif
+    // Use OpenMP to parallelise the for loop
+    // dr[3] and r are private variables for each thread
+    #pragma omp for private(r) firstprivate(dr)
+    #endif
         for (uint i = 0; i < Size; i++){
             // initialise PE to zero
             E_Potential[i] = 0.0;
@@ -67,10 +68,18 @@ void Compute_PotentialEnergy_CPU(real (*Pos)[3], real *E_Potential,
 #ifdef OPEN_MP
     }
 #endif
-
-    if (call_counter == 0)
-        cout << __func__ << "...done!" << endl;
+    #ifdef SIMD
+    // Use SIMD to speed up the summation
+    #pragma omp simd reduction(+:E_Potential_total)
+    #endif
+    // loop over all the particles
+    for (uint i = 0; i < Size; i++) E_Potential_total += E_Potential[i];
+#ifdef DEBUG
+    printf("Total Potential Energy: %f\n", E_Potential_total);
+#endif
+    if (call_counter == 0) cout << __func__ << "...done!" << endl;
     call_counter++;
+    return E_Potential_total;
 } // FUNCTION : Compute_PotentialEnergy_CPU
 
 // Compute the total potential energy of the system
@@ -86,8 +95,9 @@ real ComputeTotalPotentialEnergy_CPU(real *E_Potential, const uint Size){
     for (uint i = 0; i < Size; i++){
         E_Potential_total += E_Potential[i];
     }
-    cout << "Total Potential Energy: " << E_Potential_total << endl;
-
+#ifdef DEBUG
+    printf("Total Potential Energy: %f\n", E_Potential_total);
+#endif
     if (call_counter == 0) cout << __func__ << "...done!" << endl;
     call_counter++;
     return E_Potential_total;
