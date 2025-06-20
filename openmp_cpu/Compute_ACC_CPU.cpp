@@ -9,7 +9,7 @@
 /  Pos  (Dynamical array) : Position of each particle (Size: N x 3)
 /  Acc  (Dynamical array) : Acceleration of each particle (Size: N x 3)
 /  Mass (Dynamical array) : Mass of each particle (Size: N)
-/  Size (uint ) : Number of particles
+/  Size (const uint ) : Number of particles
 
 
 ************************************************************************/
