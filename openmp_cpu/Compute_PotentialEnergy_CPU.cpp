@@ -101,5 +101,5 @@ real ComputeTotalPotentialEnergy_CPU(real *E_Potential, const uint Size){
     if (call_counter == 0) cout << __func__ << "...done!" << endl;
     call_counter++;
     return E_Potential_total;
-}
+}   // FUNCTION : ComputeTotalPotentialEnergy_CPU
 

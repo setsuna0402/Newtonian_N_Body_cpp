@@ -83,7 +83,7 @@ real ComputeTotalKineticEnergy_CPU(real *E_Kinetic, const uint Size){
         E_Kinetic_total += E_Kinetic[i];
     }
 #ifdef DEBUG
-    printf("Total Potential Energy: %f\n", E_Kinetic_total);
+    printf("Total Kinetic Energy: %f\n", E_Kinetic_total);
 #endif
     if (call_counter == 0) cout << __func__ << "...done!" << endl;
     call_counter++;
