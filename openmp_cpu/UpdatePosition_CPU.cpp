@@ -1,7 +1,6 @@
 /***********************************************************************
 /
-/  Compute acceleration of each particle by soften gravity (CPU version)
-/  Note that Gravitational constant is always assumed to be 1 !
+/  Update the position of all the particles (CPU version)
 /
 /  written by: KH 
 /  date:       2025/6/20
