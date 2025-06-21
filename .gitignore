@@ -13,3 +13,4 @@ MPI_gizmo_mult_big.cpp
 std*
 demo
 Test_Field*
+compile_private.sh
