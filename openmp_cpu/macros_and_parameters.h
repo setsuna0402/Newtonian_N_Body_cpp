@@ -2,10 +2,11 @@
 #define __macros_and_parameters_h_
 
 // single/double precision
-#define FLOAT8  // on: double precision
+#define FLOAT8  // on: double precision (If you read IC, use double precision)
 // Use openMP for parallel computing
 #define OPEN_MP // on: multiple threads (OpenMP); off: single thread 
-#define SIMD    // on: use SIMD (AVX2, AVX512, etc.)
+// #define SIMD    // on: use SIMD (AVX2, AVX512, etc.)
+#define DEBUG   // on: debug mode and print debug information
 
 #ifdef OPEN_MP
     #define OPENMP_NUM_THREAD 8
@@ -19,36 +20,42 @@ typedef double real;
 typedef float real; 
 #endif
 
-#define IC_FILE_NAME "IC_N_2048.hdf5"  // input file name (IC)
+#define IC_FILE_NAME "IC_N_1024.hdf5"  // input file name (IC)
 #ifdef FLOAT8
     #define META_NAME "N_body_meta_double.h5"       // input meta data file name 
 #else
     #define META_NAME "N_body_meta_single.h5"       // input meta data file name 
 #endif
-#define OUTPUT_FILE_Prefix "N_body_8_thread_SIMD_N_2048_step_" // output file name(HDF5)
+#define OUTPUT_FILE_Prefix "N_body_8_thread_SIMD_N_1024_step_" // output file name(HDF5)
 // Dataset names
 #define DATASETNAME_Pos  "Position"
 #define DATASETNAME_Vel  "Velocity"
 #define DATASETNAME_Acc  "Acceleration"
 #define DATASETNAME_Mass "Mass"
+#define DATASETNAME_PE   "PotentialEnergy"
+#define DATASETNAME_KE   "KineticEnergy"
 
 #ifdef FLOAT8
     #define BOXSIZE_CODE    1.0     // Boxsize in code unit 
     #define FLOAT_EPSILON   1.0e-10 // Small number as a threshold
     #define CourantNumber   0.5     // Safety Number satisfying Courant Condition
     // soften length for calculating the gravitational acceleration
-    #define SOFTEN          0.01    // Code unit
-    #define End_Time        1.0     // Endtime of simulation (code unit)
+    #define SOFTEN          0.01   // Soften Length (code unit)
+    #define End_Time        0.1     // Endtime of simulation (code unit)
+    #define TimeSafety      1.0e-2  // safety factor for computing timestep
+    #define V_MAX           0.1    // Maximum initial velocity of particles (code unit)
 #else
     #define BOXSIZE_CODE    1.0f    // Boxsize in code unit 
     #define FLOAT_EPSILON   1.0e-5f // Small number as a threshold
     #define CourantNumber   0.5f    // Safety Number satisfying Courant Condition
     // soften length for calculating the gravitational acceleration
-    #define SOFTEN          0.01f   // Code unit
-    #define End_Time        1.0f    // Endtime of simulation (code unit)
+    #define SOFTEN          0.01f  // Soften Length (code unit)
+    #define End_Time        0.1f    // Endtime of simulation (code unit)
+    #define TimeSafety      1.0e-2f // safety factor for computing timestep
+    #define V_MAX           0.1f   // Maximum initial velocity of particles (code unit)
 #endif
 
-#define N_PARTICLE      2048             // Number of particles
+#define N_PARTICLE      1024             // Number of particles
 // Maximum number of evolution steps
 #define N_STEP_MAX      1000000          // Maximum number of evolution steps
 #define N_DUMP_STEP     10000            // Number of dump steps
