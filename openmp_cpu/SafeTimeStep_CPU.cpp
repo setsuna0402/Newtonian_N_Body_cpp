@@ -19,13 +19,12 @@
 using namespace std;
 
 // Compute TimeStep based on the theoretical maximum acceleration
-void Safest_TimeStep_CPU(real &dt)
-{
+void Safest_TimeStep_CPU(real &dt){
     static uint call_counter = 0;
     if (call_counter == 0) cout << "Which function is running?   " << __func__ << endl;
     const real eps2 = SOFTEN * SOFTEN; // the soften term in the soften gravity method
     dt = TimeSafety * 2.6 * eps2;
-    printf("dt = %f (code unit)\n", dt);
+    printf("dt = %e (code unit)\n", dt);
     if (call_counter == 0) cout << __func__ << "...done!" << endl;
     call_counter++;
 } // FUNCTION : Safest_TimeStep_CPU

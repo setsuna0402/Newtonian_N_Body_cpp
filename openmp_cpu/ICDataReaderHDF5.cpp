@@ -41,7 +41,7 @@ int ICDataReaderHDF5(real (*Pos)[3], real (*Vel)[3], real *Mass){
     cout<<"Position:  rank = "<<rank<<"  dimension  = "<<dimsf_vector[0]<<"x"<<dimsf_vector[1]<<endl;
     if (dimsf_vector[0] != N_PARTICLE || dimsf_vector[1] != 3) {
         printf("The dimension of Position is not correct!\n");
-        printf("It should be %d x 3, but it is %d x %d\n", N_PARTICLE, dimsf_vector[0], dimsf_vector[1]);
+        printf("It should be %lld x 3, but it is %d x %d\n", N_PARTICLE, dimsf_vector[0], dimsf_vector[1]);
         printf("Abort\n");
         return EXIT_FAILURE;
     }
@@ -64,7 +64,7 @@ int ICDataReaderHDF5(real (*Pos)[3], real (*Vel)[3], real *Mass){
     cout<<"TotalEnergy:  rank = "<<rank<<"  dimension  = "<<dimsf_vector[0]<<"x"<<dimsf_vector[1]<<endl;
     if (dimsf_vector[0] != N_PARTICLE || dimsf_vector[1] != 3) {
         printf("The dimension of Velocity is not correct!\n");
-        printf("It should be %d x 3, but it is %d x %d\n", N_PARTICLE, dimsf_vector[0], dimsf_vector[1]);
+        printf("It should be %lld x 3, but it is %d x %d\n", N_PARTICLE, dimsf_vector[0], dimsf_vector[1]);
         printf("Abort\n");
         return EXIT_FAILURE;
     }
@@ -87,7 +87,7 @@ int ICDataReaderHDF5(real (*Pos)[3], real (*Vel)[3], real *Mass){
     cout<<"Mass:  rank = "<<rank<<"  dimension  = "<<dimsf_scaler[0]<<endl;
     if (dimsf_scaler[0] != N_PARTICLE) {
         printf("The dimension of Mass is not correct!\n");
-        printf("It should be %d, but it is %d\n", N_PARTICLE, dimsf_scaler[0]);
+        printf("It should be %lld, but it is %d\n", N_PARTICLE, dimsf_scaler[0]);
         printf("Abort\n");
         return EXIT_FAILURE;
     }   
