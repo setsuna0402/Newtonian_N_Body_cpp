@@ -63,10 +63,14 @@ real Compute_KineticEnergy_CPU(real (*Vel)[3], real *Mass, real *E_Kinetic,
 #endif
     for(uint i = 0; i < Size; i++) E_Kinetic_total += E_Kinetic[i];
 
+#ifdef DEBUG
+    // Print the total kinetic energy of the system
+    printf("Total Kinetic Energy: %f\n", E_Kinetic_total);
+#endif
 
-    if (call_counter == 0)
-        cout << __func__ << "...done!" << endl;
+    if (call_counter == 0) cout << __func__ << "...done!" << endl; 
     call_counter++;
+    return E_Kinetic_total;
 } // FUNCTION : Compute_KineticEnergy_CPU
 
 // Compute the total kinetic energy of the system
