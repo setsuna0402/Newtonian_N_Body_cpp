@@ -9,14 +9,14 @@
 /  Vel  (Dynamical array) : Velocity of each particle (Size: N x 3)
 /  Mass (Dynamical array) : Mass of each particle (Size: N)
 /  Pos  (Dynamical array) : Position of each particle (Size: N x 3)
-/  Acc  (Dynamical array) : Acceleration of each particle (Size: N x 3)
 ************************************************************************/
 #include "macros_and_parameters.h"
 #include "Header.h"
 
 using namespace std;
 
-int ICDataReaderHDF5(real (*Pos)[3], real (*Vel)[3], real (*Acc)[3], real *Mass){
+// Read the initial condition (HDF5 format)
+int ICDataReaderHDF5(real (*Pos)[3], real (*Vel)[3], real *Mass){
     cout << "Which function is running?     " << __func__ << endl;
     int    rank          = 0;
     int    status_n      = 0;
@@ -76,29 +76,6 @@ int ICDataReaderHDF5(real (*Pos)[3], real (*Vel)[3], real (*Acc)[3], real *Mass)
     if (status != 0) {
         printf("H5Dread status = %d, it doesn't equal to zeros \n", status);
         printf("Failed to read {%s}\n", DATASETNAME_Pos);
-        printf("Abort\n");
-        return EXIT_FAILURE;
-    }
-    // read Acceleration
-    dataset   = H5Dopen2(file, DATASETNAME_Acc, H5P_DEFAULT)    ;
-    dataspace = H5Dget_space(dataset);    //dataspace handle
-    rank      = H5Sget_simple_extent_ndims(dataspace);
-    status_n  = H5Sget_simple_extent_dims(dataspace, dimsf_vector, NULL);
-    cout<<"Acceleration:  rank = "<<rank<<"  dimension  = "<<dimsf_vector[0]<<"x"<<dimsf_vector[1]<<endl;
-    if (dimsf_vector[0] != N_PARTICLE || dimsf_vector[1] != 3) {
-        printf("The dimension of Acceleration is not correct!\n");
-        printf("It should be %d x 3, but it is %d x %d\n", N_PARTICLE, dimsf_vector[0], dimsf_vector[1]);
-        printf("Abort\n");
-        return EXIT_FAILURE;
-    }
-#ifdef FLOAT8
-    status = H5Dread(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL,H5P_DEFAULT, Acc);
-#else
-    status = H5Dread(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL,H5P_DEFAULT, Acc);
-#endif
-    if (status != 0) {
-        printf("H5Dread status = %d, it doesn't equal to zeros \n", status);
-        printf("Failed to read {%s}\n", DATASETNAME_Acc);
         printf("Abort\n");
         return EXIT_FAILURE;
     }
