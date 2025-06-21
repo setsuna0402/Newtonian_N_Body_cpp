@@ -15,8 +15,7 @@
 using namespace std;
 
 // Update velocity by a given timestep
-void UpdateVelocity_CPU(real dt, real (*Vel)[3], real (*Acc)[3], const uint Size)
-{
+void UpdateVelocity_CPU(real dt, real (*Vel)[3], real (*Acc)[3], const uint Size){
     static uint call_counter = 0;
     if (call_counter == 0) cout << "Which function is running?   " << __func__ << endl;
     // In this case, for-loop parallelisation can be not beneficial. 

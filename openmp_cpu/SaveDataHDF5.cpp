@@ -21,6 +21,7 @@
 
 using namespace std;
 
+// Save snapshot (HDF5 format)
 void SaveDataHDF5(real (*Pos)[3], real (*Vel)[3], real (*Acc)[3], real *Mass,
                   real *E_Potential, real *E_Kinetic, const uint Size,
                   const uint Num_step, const real TimeStep, const real Time){
@@ -92,6 +93,12 @@ void SaveDataHDF5(real (*Pos)[3], real (*Vel)[3], real (*Acc)[3], real *Mass,
     status    = H5Tset_order(datatype, H5T_ORDER_LE);
     dataset   = H5Dcreate2(file, "code_time", datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status    = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &Time);
+    // Save Number of Steps
+    dataspace = H5Screate_simple(1, dimsf_time, NULL);
+    datatype  = H5Tcopy(H5T_NATIVE_UINT);
+    status    = H5Tset_order(datatype, H5T_ORDER_LE);
+    dataset   = H5Dcreate2(file, "Number_of_step", datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    status    = H5Dwrite(dataset, H5T_NATIVE_UINT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &Num_step);
 #else
     dataspace = H5Screate_simple(RANK, dimsf, NULL);
     datatype  = H5Tcopy(H5T_NATIVE_FLOAT);
