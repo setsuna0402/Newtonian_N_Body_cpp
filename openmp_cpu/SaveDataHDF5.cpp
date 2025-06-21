@@ -64,19 +64,19 @@ void SaveDataHDF5(real (*Pos)[3], real (*Vel)[3], real (*Acc)[3], real *Mass,
     dataset   = H5Dcreate2(file, DATASETNAME_Acc, datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status    = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, Acc);
     // Save Mass
-    dataspace = H5Screate_simple(RANK, dimsf_scaler, NULL);
+    dataspace = H5Screate_simple(1, dimsf_scaler, NULL);
     datatype  = H5Tcopy(H5T_NATIVE_DOUBLE);
     status    = H5Tset_order(datatype, H5T_ORDER_LE);
     dataset   = H5Dcreate2(file, DATASETNAME_Mass, datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status    = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, Mass);
     // Save Potential Energy
-    dataspace = H5Screate_simple(RANK, dimsf_scaler, NULL);
+    dataspace = H5Screate_simple(1, dimsf_scaler, NULL);
     datatype  = H5Tcopy(H5T_NATIVE_DOUBLE);
     status    = H5Tset_order(datatype, H5T_ORDER_LE);
     dataset   = H5Dcreate2(file, DATASETNAME_PE, datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status    = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, E_Potential);
     // Save Kinetic Energy
-    dataspace = H5Screate_simple(RANK, dimsf_scaler, NULL);
+    dataspace = H5Screate_simple(1, dimsf_scaler, NULL);
     datatype  = H5Tcopy(H5T_NATIVE_DOUBLE);
     status    = H5Tset_order(datatype, H5T_ORDER_LE);
     dataset   = H5Dcreate2(file, DATASETNAME_KE, datatype, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
