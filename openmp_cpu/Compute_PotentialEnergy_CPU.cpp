@@ -19,8 +19,8 @@
 using namespace std;
 
 // Compute the potential energy for each particles
-real Compute_PotentialEnergy_CPU(real (*Pos)[3], real *E_Potential,
-                                 real *Mass, const uint Size){
+real Compute_PotentialEnergy_CPU(real (*Pos)[3], real *Mass,
+                                 real *E_Potential, const uint Size){
     static uint call_counter = 0;
     if (call_counter == 0) cout << "Which function is running?   " << __func__ << endl;
     const float eps2 = SOFTEN * SOFTEN; // the soften term in the soften gravity method
@@ -74,6 +74,13 @@ real Compute_PotentialEnergy_CPU(real (*Pos)[3], real *E_Potential,
     #endif
     // loop over all the particles
     for (uint i = 0; i < Size; i++) E_Potential_total += E_Potential[i];
+
+#ifdef FLOAT8
+    E_Potential_total *= 0.5; // divide by 2 because we have counted each pair twice
+#else
+    E_Potential_total *= 0.5f; // divide by 2 because we have counted each pair twice
+#endif
+
 #ifdef DEBUG
     printf("Total Potential Energy: %f\n", E_Potential_total);
 #endif
@@ -87,17 +94,24 @@ real ComputeTotalPotentialEnergy_CPU(real *E_Potential, const uint Size){
     static uint call_counter = 0;
     if (call_counter == 0) cout << "Which function is running?   " << __func__ << endl;
     real E_Potential_total = 0.0;
+
 #ifdef SIMD
     // Use SIMD to speed up the summation
     #pragma omp simd reduction(+:E_Potential_total)
 #endif
     // loop over all the particles
-    for (uint i = 0; i < Size; i++){
-        E_Potential_total += E_Potential[i];
-    }
+    for (uint i = 0; i < Size; i++) E_Potential_total += E_Potential[i];
+
+#ifdef FLOAT8
+    E_Potential_total *= 0.5; // divide by 2 because we have counted each pair twice
+#else
+    E_Potential_total *= 0.5f; // divide by 2 because we have counted each pair twice
+#endif
+
 #ifdef DEBUG
     printf("Total Potential Energy: %f\n", E_Potential_total);
 #endif
+
     if (call_counter == 0) cout << __func__ << "...done!" << endl;
     call_counter++;
     return E_Potential_total;
