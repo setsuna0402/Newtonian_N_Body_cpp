@@ -5,7 +5,8 @@
 /  There are three GPU algorithms to compute the acceleration.
 /  Compute_ACC_GPU_SLOW: This is a slow version, which is not optimised for performance.
 /  (No per-thread register, no shared memory usage, etc.)
-/  Compute_ACC_GPU_FAST: This is a faster Compute_ACC_GPU_SLOW, which use per-thread register.
+/  Compute_ACC_GPU_FAST: This is a faster than Compute_ACC_GPU_SLOW,
+/  using per-thread register.
 /  Compute_ACC_GPU_SHARED: This is a shared memory version,
 /  which use per-thread register and shared memory to optimise the performance.
 /
@@ -54,7 +55,11 @@ __global__ void Compute_ACC_GPU_SLOW(real (*Pos)[3], real (*Acc)[3],
             // accumulate the acceleration (acc = Mass_j r/|r|^3)
             for (uint d=0; d<3; d++) Acc[i][d] += Mass[j] * dr[d] / r3;
         }
-        for (uint j=i+1; j<Size; j++) {
+        for (uint j=i+1; j<Size; j++){
+            // I think the first line can eusure the newton's third law (numerically)
+            // But it seems like compiller optimised this line
+            // and it becomes the same as the third line
+            // so, base on the KISS principle, I use the second line in all GPU functions
             // for (uint d=0; d<3; d++) dr[d] = -(Pos[i][d] - Pos[j][d]);
             for (uint d=0; d<3; d++) dr[d] = Pos[i][d] - Pos[j][d];
             // for (uint d=0; d<3; d++) dr[d] = Pos[j][d] - Pos[i][d];
@@ -124,7 +129,6 @@ __global__ void Compute_ACC_GPU_FAST(real (*Pos)[3], real (*Acc)[3],
 #endif
             r3 = r * r * r;
             // accumulate the acceleration (acc = Mass_j r/|r|^3)
-            // for (uint d=0; d<3; d++) acc_thread[d] += dr[d] / r3;
             for (uint d=0; d<3; d++) acc_thread[d] -= Mass[j] * dr[d] / r3;
         }
         // load the acceleration from the per-thread register to the global memory
