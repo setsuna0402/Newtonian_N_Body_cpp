@@ -5,7 +5,7 @@
 #define FLOAT8  // on: double precision (If you read IC, use double precision)
 // Use openMP for parallel computing
 #define OPEN_MP // on: multiple threads (OpenMP); off: single thread 
-// #define SIMD    // on: use SIMD (AVX2, AVX512, etc.)
+#define SIMD    // on: use SIMD (AVX2, AVX512, etc.)
 #define DEBUG   // on: debug mode and print debug information
 
 #ifdef OPEN_MP
@@ -58,7 +58,7 @@ typedef float real;
 #define N_PARTICLE      1024             // Number of particles
 // Maximum number of evolution steps
 #define N_STEP_MAX      1000000          // Maximum number of evolution steps
-#define N_DUMP_STEP     10000            // Number of dump steps
+#define N_DUMP_STEP     1000            // Number of dump steps
 #define N_DUMP_MAX      (N_STEP_MAX / N_DUMP_STEP) // Maximum number of dump files
 
 // Gobal constants

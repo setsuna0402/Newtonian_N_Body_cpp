@@ -137,7 +137,7 @@ int main( int argc, char **argv ){
     Safest_TimeStep_CPU(dt_host);
     if (dt_host >= End_Time) dt_host = 0.1 * End_Time;
     // printf("time_host = %2.6f, dt = %2.6e\n", time_host, dt_host);
-    N_step_total = (uint)(End_Time / dt_host); // Total number of steps
+    N_step_total = (uint)(End_Time / dt_host) + 1; // Total number of steps
     if (N_step_total > N_STEP_MAX) {
         fprintf(stderr, "N_step_total = %d exceeds N_STEP_MAX = %d.\n", 
                 N_step_total, N_STEP_MAX);
