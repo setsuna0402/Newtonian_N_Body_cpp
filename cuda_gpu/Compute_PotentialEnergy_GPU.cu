@@ -133,7 +133,7 @@ __global__ void Compute_PotentialEnergy_GPU_FAST(real (*Pos)[3], real *Mass,
 } // FUNCTION : Compute_PotentialEnergy_GPU_FAST
 
 // GPU function : Compute the PE (using shared memory) for each particles
-__global__ void Compute_PotentialEnergy_SHARED(real (*Pos)[3], real *Mass,
+__global__ void Compute_PotentialEnergy_GPU_SHARED(real (*Pos)[3], real *Mass,
                                                real *E_Potential, const uint Size){
     const real eps2 = SOFTEN * SOFTEN; // the soften term in the soften gravity method
     real dr[3] = {0.0f, 0.0f, 0.0f};
@@ -252,5 +252,5 @@ __global__ void Compute_PotentialEnergy_SHARED(real (*Pos)[3], real *Mass,
     if (i < Size) E_Potential[i] = e_potential_thread;
 
     // printf("id = %i : E_Potential = %e \n", i, E_Potential[i]);
-} // FUNCTION : Compute_PotentialEnergy_SHARED
+} // FUNCTION : Compute_PotentialEnergy_GPU_SHARED
 
