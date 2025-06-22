@@ -1,12 +1,12 @@
 /***********************************************************************
 /
-/  Compute acceleration of each particle by soften gravity (GPU version)
+/  Compute potential energy of each particle by soften gravity (GPU version)
 /  Note that Gravitational constant is always assumed to be 1 !
-/  There are three GPU algorithms to compute the acceleration.
+/  There are three GPU algorithms to compute the potential energy.
 /  Compute_PotentialEnergy_GPU_SLOW: This is a slow version, 
 /  which is not optimised for performance. 
 /  (No per-thread register, no shared memory usage, etc.)
-/  Compute_PotentialEnergy_GPU_FAST: This is a faster than Compute_PotentialEnergy_GPU_SLOW, 
+/  Compute_PotentialEnergy_GPU_FAST: This is faster than Compute_PotentialEnergy_GPU_SLOW, 
 /  using per-thread register.
 /  Compute_PotentialEnergy_GPU_SHARED: This is a shared memory version,
 /  which use per-thread register and shared memory to optimise the performance.
@@ -81,7 +81,7 @@ __global__ void Compute_PotentialEnergy_GPU_FAST(real (*Pos)[3], real *Mass,
     real dr[3] = {0.0f, 0.0f, 0.0f};
     real r = 0.0f;
     real r3 = 0.0f;
-    // per-thread register to store the mass, acceleration and position of the i-th particle
+    // per-thread register to store the mass, PE and position of the i-th particle
     real mass_thread = 0.0f;
     real pos_thread[3] = {0.0f, 0.0f, 0.0f};
     real e_potential_thread = 0.0f;
@@ -132,14 +132,14 @@ __global__ void Compute_PotentialEnergy_GPU_FAST(real (*Pos)[3], real *Mass,
     // printf("id = %i : E_Potential = %e \n", i, E_Potential[i]);
 } // FUNCTION : Compute_PotentialEnergy_GPU_FAST
 
-// GPU function : Compute the acceleration (using shared memory) for each particles
+// GPU function : Compute the PE (using shared memory) for each particles
 __global__ void Compute_PotentialEnergy_SHARED(real (*Pos)[3], real *Mass,
                                                real *E_Potential, const uint Size){
     const real eps2 = SOFTEN * SOFTEN; // the soften term in the soften gravity method
     real dr[3] = {0.0f, 0.0f, 0.0f};
     real r = 0.0f;
     real r3 = 0.0f;
-    // per-thread register to store the mass, acceleration and position of the i-th particle
+    // per-thread register to store the mass, PE and position of the i-th particle
     real mass_thread = 0.0f;
     real pos_thread[3] = {0.0f, 0.0f, 0.0f};
     real e_potential_thread = 0.0f;
@@ -154,8 +154,8 @@ __global__ void Compute_PotentialEnergy_SHARED(real (*Pos)[3], real *Mass,
     __shared__ real share_Pos_y[GPU_BLOCK_SIZE];
     __shared__ real share_Pos_z[GPU_BLOCK_SIZE];
     __shared__ real share_Mass [GPU_BLOCK_SIZE];
-    // calculate the acceleration for the i-th particle from all j particle
-    //  F_ij : Force on the i-th particle caused by the j particle
+    // calculate the potential energy for the i-th particle from all j particle
+    // dr_ij : Position vector points to j-th particle from the i-th particle
     // load data from global memory to the **per-thread** registers (much faster)
     if (i < Size) {
         for (int d=0; d<3; d++) pos_thread[d] = Pos[i][d];
@@ -181,7 +181,7 @@ __global__ void Compute_PotentialEnergy_SHARED(real (*Pos)[3], real *Mass,
         if ((J_Base + Threshold_Size) <= i) {
             for (int k=0; k<Threshold_Size; k++) {
                 // if (J_Base + Threshold_Size) == i, J_Base + k_max == i - 1
-                // Ensure Acc_i_i is zero!
+                // Ensure PE_i_i is zero!
                 dr[0] = share_Pos_x[k] - pos_thread[0];
                 dr[1] = share_Pos_y[k] - pos_thread[1];
                 dr[2] = share_Pos_z[k] - pos_thread[2];

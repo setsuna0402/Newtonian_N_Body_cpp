@@ -5,7 +5,7 @@
 /  There are three GPU algorithms to compute the acceleration.
 /  Compute_ACC_GPU_SLOW: This is a slow version, which is not optimised for performance.
 /  (No per-thread register, no shared memory usage, etc.)
-/  Compute_ACC_GPU_FAST: This is a faster than Compute_ACC_GPU_SLOW,
+/  Compute_ACC_GPU_FAST: This is faster than Compute_ACC_GPU_SLOW,
 /  using per-thread register.
 /  Compute_ACC_GPU_SHARED: This is a shared memory version,
 /  which use per-thread register and shared memory to optimise the performance.
