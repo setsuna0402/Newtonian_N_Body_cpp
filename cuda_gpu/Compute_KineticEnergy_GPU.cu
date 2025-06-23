@@ -27,4 +27,4 @@ __global__ void Compute_KineticEnergy_GPU(real (*Vel)[3], real *Mass,
         E_Kinetic[i] = 0.5 * Mass[i] * v2;
     }
 
-}
+} // Function: Compute_KineticEnergy_GPU
