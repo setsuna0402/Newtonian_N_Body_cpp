@@ -9,9 +9,9 @@
 // #define SIMD       // on: use SIMD (AVX2, AVX512, etc.)
 #define DEBUG      // on: debug mode and print debug information
 // WARNING: You can only use one of the following GPU options at a time
-#define GPU_SLOW   // on: test GPU code (simplest and slowest method)
+// #define GPU_SLOW   // on: test GPU code (simplest and slowest method)
 // #define GPU_FAST   // on: use **per-thread** registers memory in GPU code
-// #define GPU_SHARED // on: use **per-thread** registers and shared memory in GPU code
+#define GPU_SHARED // on: use **per-thread** registers and shared memory in GPU code
 
 // This macro is a shorthand for checking CUDA errors
 #define CHECK_CUDA(call) checkCuda((call), #call, __FILE__, __LINE__)
