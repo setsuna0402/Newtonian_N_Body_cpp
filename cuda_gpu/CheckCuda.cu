@@ -15,8 +15,7 @@
 #include "Header.h"
 
 // Function to check CUDA errors
-void checkCuda(cudaError_t result, const char *msg = "", const char *file = __FILE__,
-               int line = __LINE__){
+void checkCuda(cudaError_t result, const char *msg, const char *file, int line){
     if (result != cudaSuccess) {
         printf("CUDA Error: %s, at file %s on line %d\n", msg, file, line);
         printf("CUDA Error code: %d (%s)\n", result, cudaGetErrorString(result));
