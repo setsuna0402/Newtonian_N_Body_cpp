@@ -47,23 +47,7 @@ real G_Velocity_CodeUnits ;  // Convert velocity from code unit to meter/second
 real G_Energy_CodeUnits   ;  // Convert energy from code unit to Joule
 
 int main( int argc, char **argv ){
-    // Initialise OpenMP
-#ifdef OPEN_MP
-    int nProcessors = omp_get_max_threads();
-    if (nProcessors < OPENMP_NUM_THREAD) {
-        fprintf(stderr, "Warning: nProcessors = %d is less than OPENMP_NUM_THREAD = %d.\n", 
-                nProcessors, OPENMP_NUM_THREAD);
-        fprintf(stderr, "Using nProcessors = %d instead.\n", nProcessors);
-        omp_set_num_threads(nProcessors) ;    // Set how many thread we can use
-    }
-    else{
-        omp_set_num_threads(OPENMP_NUM_THREAD);  // Set how many thread we can use
-    }
-    // omp_set_num_threads(nProcessors) ;    // Set how many thread we can use
-    nProcessors = omp_get_max_threads();
-    cout << "omp_get_max_threads = " << nProcessors << endl;
-    double itime, ftime, exec_time;
-#endif
+    
     const uint RSeed = 1234; // random seed
     srand(RSeed);
     clock_t start_time, end_time;
@@ -175,8 +159,10 @@ int main( int argc, char **argv ){
     return EXIT_FAILURE;
 #endif 
     // Check for errors in the kernel launch
-    CHECK_CUDA(cudaGetLastError()    );
-    CHECK_CUDA(cudaDeviceSynchronize());    // Wait until GPU is done
+    CHECK_CUDA(cudaGetLastError()     );
+    // Copy the acceleration data from device to host
+    CHECK_CUDA(cudaMemcpy(h_Acc, d_Acc, 3 * N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
+
     end_time = clock();
     printf("How long did we take for computing Acc? %f seconds\n", 
            (double)(end_time - start_time) / CLOCKS_PER_SEC);
@@ -198,11 +184,11 @@ int main( int argc, char **argv ){
     start_time = clock();
     // Compute the initial potential energy
 #if defined(GPU_SLOW)
-    Compute_PotentialEnergy_GPU_SLOW <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Kinetic, N_PARTICLE);
+    Compute_PotentialEnergy_GPU_SLOW <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Potential, N_PARTICLE);
 #elif defined(GPU_FAST)
-    Compute_PotentialEnergy_GPU_FAST <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Kinetic, N_PARTICLE);
+    Compute_PotentialEnergy_GPU_FAST <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Potential, N_PARTICLE);
 #elif defined(GPU_SHARED)
-    Compute_PotentialEnergy_GPU_SHARED <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Kinetic, N_PARTICLE);
+    Compute_PotentialEnergy_GPU_SHARED <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Potential, N_PARTICLE);
 #endif
     CHECK_CUDA(cudaGetLastError()); // Check for errors in the kernel launch
     // Initialise the arrays to zero
@@ -210,12 +196,16 @@ int main( int argc, char **argv ){
     CHECK_CUDA(cudaMemset(d_sum_all_pe , 0, 1          )); // Set all elements to 0
     // Perform reduction sum for potential energy
     ReductionSum_GPU <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_E_Potential, d_sum_part_pe, N_PARTICLE);
-    ReductionSum_GPU <<< 1, GPU_BLOCK_SIZE >>> (d_sum_part_pe, d_sum_all_pe, N_PARTICLE);
+    ReductionSum_GPU <<< 1, GPU_BLOCK_SIZE >>> (d_sum_part_pe, d_sum_all_pe, N_GPU_BLOCK);
     CHECK_CUDA(cudaGetLastError());
     // Copy the result back to host
     CHECK_CUDA(cudaMemcpy(&PE_total, d_sum_all_pe, sizeof(real), cudaMemcpyDeviceToHost));
     // the potential energy is divided by 2, because we court all the pairs twice
+#ifdef FLOAT8
+    PE_total = 0.5 * PE_total;
+#else
     PE_total = 0.5f * PE_total;
+#endif
     end_time = clock();
     printf("How long did we take for computing PE? %f seconds\n", 
            (double)(end_time - start_time) / CLOCKS_PER_SEC);
@@ -229,19 +219,32 @@ int main( int argc, char **argv ){
     CHECK_CUDA(cudaMemset(d_sum_all_ke , 0, 1          )); // Set all elements to 0
     // Perform reduction sum for kinetic energy
     ReductionSum_GPU <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_E_Kinetic, d_sum_part_ke, N_PARTICLE);
-    ReductionSum_GPU <<< 1, GPU_BLOCK_SIZE >>> (d_sum_part_ke, d_sum_all_ke, N_PARTICLE);
+    ReductionSum_GPU <<< 1, GPU_BLOCK_SIZE >>> (d_sum_part_ke, d_sum_all_ke, N_GPU_BLOCK);
     CHECK_CUDA(cudaGetLastError()); // Check for errors in the kernel launch
     // Copy the result back to host
     CHECK_CUDA(cudaMemcpy(&KE_total, d_sum_all_ke, sizeof(real), cudaMemcpyDeviceToHost));
     end_time = clock();
     printf("How long did we take for computing KE? %f seconds\n", 
            (double)(end_time - start_time) / CLOCKS_PER_SEC);
-    cudaDeviceSynchronize();    // Synchronize the device
-
+    
     // Print the initial total energy
     Energy_total = PE_total + KE_total;
     printf("Initial Total Energy = %2.6e\n", Energy_total);
-
+    // Copy the data from device to host
+    CHECK_CUDA(cudaMemcpy(h_E_Potential, d_E_Potential, N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_E_Kinetic  , d_E_Kinetic  , N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
+    
+    // check sum of potential and kinetic energy
+    real PE_sum = 0.0, KE_sum = 0.0;
+    for (uint i = 0; i < N_PARTICLE; i++) {
+        PE_sum += h_E_Potential[i];
+        KE_sum += h_E_Kinetic[i];
+    }
+    PE_sum = 0.5f * PE_sum; // Divide by 2 because we count all pairs twice
+    printf("Sum (GPU) of potential energy = %2.6e, sum of kinetic energy = %2.6e\n",
+            PE_total, KE_total);
+    printf("Sum (CPU) of potential energy = %2.6e, sum of kinetic energy = %2.6e\n",
+           PE_sum, KE_sum);
     // Save the initial snapshot
     SaveDataHDF5(h_Pos, h_Vel, h_Acc, h_Mass, h_E_Potential, h_E_Kinetic,
                  N_PARTICLE, num_round, dt_host, time_host);
@@ -263,10 +266,10 @@ int main( int argc, char **argv ){
     #endif
         CHECK_CUDA(cudaGetLastError());  
         // Update Velocity to t_i+1/2 (Kick)
-        UpdateVelocity_GPU <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (dt_host * const_half, h_Vel, h_Acc, N_PARTICLE);
+        UpdateVelocity_GPU <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (dt_host * const_half, d_Vel, d_Acc, N_PARTICLE);
         CHECK_CUDA(cudaGetLastError());
         // Update Position to t_i+1 (Drift)
-        UpdatePosition_GPU <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (dt_host, h_Pos, h_Vel, N_PARTICLE);
+        UpdatePosition_GPU <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (dt_host, d_Pos, d_Vel, N_PARTICLE);
         CHECK_CUDA(cudaGetLastError());
         // Compute acc(t_i+1) using Pos(t_i+1)
     #if defined(GPU_SLOW)
@@ -278,7 +281,7 @@ int main( int argc, char **argv ){
     #endif
         CHECK_CUDA(cudaGetLastError());
         // Update Velocity to t_i+1 (Kick)
-        UpdateVelocity_GPU <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (dt_host * const_half, h_Vel, h_Acc, N_PARTICLE);
+        UpdateVelocity_GPU <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (dt_host * const_half, d_Vel, d_Acc, N_PARTICLE);
         CHECK_CUDA(cudaGetLastError());
         // Update simulation time
         time_host += dt_host;
@@ -297,11 +300,11 @@ int main( int argc, char **argv ){
                     time_host, dt_host);
             // Compute the potential energy
         #if defined(GPU_SLOW)
-            Compute_PotentialEnergy_GPU_SLOW <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Kinetic, N_PARTICLE);
+            Compute_PotentialEnergy_GPU_SLOW <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Potential, N_PARTICLE);
         #elif defined(GPU_FAST)
-            Compute_PotentialEnergy_GPU_FAST <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Kinetic, N_PARTICLE);
+            Compute_PotentialEnergy_GPU_FAST <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Potential, N_PARTICLE);
         #elif defined(GPU_SHARED)
-            Compute_PotentialEnergy_GPU_SHARED <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Kinetic, N_PARTICLE);
+            Compute_PotentialEnergy_GPU_SHARED <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Potential, N_PARTICLE);
         #endif
             CHECK_CUDA(cudaGetLastError()); // Check for errors in the kernel launch
             // Initialise the arrays to zero
@@ -309,7 +312,7 @@ int main( int argc, char **argv ){
             CHECK_CUDA(cudaMemset(d_sum_all_pe , 0, 1          )); // Set all elements to 0
             // Perform reduction sum for potential energy
             ReductionSum_GPU <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_E_Potential, d_sum_part_pe, N_PARTICLE);
-            ReductionSum_GPU <<< 1, GPU_BLOCK_SIZE >>> (d_sum_part_pe, d_sum_all_pe, N_PARTICLE);
+            ReductionSum_GPU <<< 1, GPU_BLOCK_SIZE >>> (d_sum_part_pe, d_sum_all_pe, N_GPU_BLOCK);
             CHECK_CUDA(cudaGetLastError());
             // Copy the result back to host
             CHECK_CUDA(cudaMemcpy(&PE_total, d_sum_all_pe, sizeof(real), cudaMemcpyDeviceToHost));
@@ -322,17 +325,27 @@ int main( int argc, char **argv ){
             CHECK_CUDA(cudaMemset(d_sum_all_ke , 0, 1          )); // Set all elements to 0
             // Perform reduction sum for kinetic energy
             ReductionSum_GPU <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_E_Kinetic, d_sum_part_ke, N_PARTICLE);
-            ReductionSum_GPU <<< 1, GPU_BLOCK_SIZE >>> (d_sum_part_ke, d_sum_all_ke, N_PARTICLE);
+            ReductionSum_GPU <<< 1, GPU_BLOCK_SIZE >>> (d_sum_part_ke, d_sum_all_ke, N_GPU_BLOCK);
             CHECK_CUDA(cudaGetLastError()); // Check for errors in the kernel launch
             // Copy the result back to host
             CHECK_CUDA(cudaMemcpy(&KE_total, d_sum_all_ke, sizeof(real), cudaMemcpyDeviceToHost));
             cudaDeviceSynchronize();        // Synchronize the device
             // the potential energy is divided by 2, because we court all the pairs twice
+        #ifdef FLOAT8
+            PE_total = 0.5 * PE_total;
+        #else
             PE_total = 0.5f * PE_total;
+        #endif
             // Compute the total energy
             Energy_total = PE_total + KE_total;
             // Print the total energy
             printf("Total Energy = %2.6e\n", Energy_total);
+            // Copy the data from device to host
+            CHECK_CUDA(cudaMemcpy(h_Pos, d_Pos, 3 * N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
+            CHECK_CUDA(cudaMemcpy(h_Vel, d_Vel, 3 * N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
+            CHECK_CUDA(cudaMemcpy(h_Acc, d_Acc, 3 * N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
+            CHECK_CUDA(cudaMemcpy(h_E_Potential, d_E_Potential, N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
+            CHECK_CUDA(cudaMemcpy(h_E_Kinetic  , d_E_Kinetic  , N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
             // Save the snapshot
             SaveDataHDF5(h_Pos, h_Vel, h_Acc, h_Mass, h_E_Potential, h_E_Kinetic,
                          N_PARTICLE, num_round, dt_host, time_host);
@@ -342,11 +355,11 @@ int main( int argc, char **argv ){
     cudaDeviceSynchronize();    // Ensure the evolution loop is completed
     // Compute the potential energy
 #if defined(GPU_SLOW)
-    Compute_PotentialEnergy_GPU_SLOW <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Kinetic, N_PARTICLE);
+    Compute_PotentialEnergy_GPU_SLOW <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Potential, N_PARTICLE);
 #elif defined(GPU_FAST)
-    Compute_PotentialEnergy_GPU_FAST <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Kinetic, N_PARTICLE);
+    Compute_PotentialEnergy_GPU_FAST <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Potential, N_PARTICLE);
 #elif defined(GPU_SHARED)
-    Compute_PotentialEnergy_GPU_SHARED <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Kinetic, N_PARTICLE);
+    Compute_PotentialEnergy_GPU_SHARED <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_Pos, d_Mass, d_E_Potential, N_PARTICLE);
 #endif
     CHECK_CUDA(cudaGetLastError()); // Check for errors in the kernel launch
     // Initialise the arrays to zero
@@ -354,7 +367,7 @@ int main( int argc, char **argv ){
     CHECK_CUDA(cudaMemset(d_sum_all_pe , 0, 1          )); // Set all elements to 0
     // Perform reduction sum for potential energy
     ReductionSum_GPU <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_E_Potential, d_sum_part_pe, N_PARTICLE);
-    ReductionSum_GPU <<< 1, GPU_BLOCK_SIZE >>> (d_sum_part_pe, d_sum_all_pe, N_PARTICLE);
+    ReductionSum_GPU <<< 1, GPU_BLOCK_SIZE >>> (d_sum_part_pe, d_sum_all_pe, N_GPU_BLOCK);
     CHECK_CUDA(cudaGetLastError());
     // Copy the result back to host
     CHECK_CUDA(cudaMemcpy(&PE_total, d_sum_all_pe, sizeof(real), cudaMemcpyDeviceToHost));
@@ -367,24 +380,35 @@ int main( int argc, char **argv ){
     CHECK_CUDA(cudaMemset(d_sum_all_ke , 0, 1          )); // Set all elements to 0
     // Perform reduction sum for kinetic energy
     ReductionSum_GPU <<< N_GPU_BLOCK, GPU_BLOCK_SIZE >>> (d_E_Kinetic, d_sum_part_ke, N_PARTICLE);
-    ReductionSum_GPU <<< 1, GPU_BLOCK_SIZE >>> (d_sum_part_ke, d_sum_all_ke, N_PARTICLE);
+    ReductionSum_GPU <<< 1, GPU_BLOCK_SIZE >>> (d_sum_part_ke, d_sum_all_ke, N_GPU_BLOCK);
     CHECK_CUDA(cudaGetLastError()); // Check for errors in the kernel launch
     // Copy the result back to host
     CHECK_CUDA(cudaMemcpy(&KE_total, d_sum_all_ke, sizeof(real), cudaMemcpyDeviceToHost));
             
     cudaDeviceSynchronize(); // Ensure we get PE_total and KE_total before printing
     // the potential energy is divided by 2, because we court all the pairs twice
+#ifdef FLOAT8
+    PE_total = 0.5 * PE_total;
+#else
     PE_total = 0.5f * PE_total;
+#endif
     // Compute the total energy
     Energy_total = PE_total + KE_total;
     // Print the total energy
-    printf("Final Total Energy at t = %2.6e\n", Energy_total, time_host);
+    printf("Final Total Energy = %2.6e at t = %2.6e\n", Energy_total, time_host);
+
+    // Copy the data from device to host
+    CHECK_CUDA(cudaMemcpy(h_Pos, d_Pos, 3 * N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_Vel, d_Vel, 3 * N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_Acc, d_Acc, 3 * N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_E_Potential, d_E_Potential, N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_E_Kinetic  , d_E_Kinetic  , N_PARTICLE * sizeof(real), cudaMemcpyDeviceToHost));
     SaveDataHDF5(h_Pos, h_Vel, h_Acc, h_Mass, h_E_Potential, h_E_Kinetic,
         N_PARTICLE, num_round, dt_host, time_host);
     printf("The final snapshot saved successfully!\n");
 
     end_time = clock();
-    printf("This simulation costs %f seconds without OpenMP (single thread mode)\n", 
+    printf("This simulation costs %f seconds with GPU!\n", 
            (double)(end_time - start_time) / CLOCKS_PER_SEC);
 
     // Release memory in device (GPU)
