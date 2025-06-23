@@ -39,7 +39,7 @@ __global__ void Compute_PotentialEnergy_GPU_SLOW(real (*Pos)[3], real *Mass,
     // dr_ij : Position vector points to j-th particle from the i-th particle
     if (i < Size) {
         // initialise PE to zero
-        E_Potential[i] = 0.0;
+        E_Potential[i] = 0.0f;
         // loop over all the particles
         // Note E_Potential_i_i has to be a zero because there is no self gravity
         // Seperate to two loop to ensure the self gravity is not counted
