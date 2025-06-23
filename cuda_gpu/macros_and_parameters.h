@@ -2,6 +2,7 @@
 #define __macros_and_parameters_h_
 
 // single/double precision
+// Use single precision for GPU computing! Much faster than double precision
 // #define FLOAT8     // on: double precision (If you read IC, use double precision)
 // Use openMP for parallel computing
 // #define OPEN_MP    // on: multiple threads (OpenMP); off: single thread 
@@ -12,10 +13,13 @@
 // #define GPU_FAST   // on: use **per-thread** registers memory in GPU code
 // #define GPU_SHARED // on: use **per-thread** registers and shared memory in GPU code
 
+// This macro is a shorthand for checking CUDA errors
+#define CHECK_CUDA(call) checkCuda((call), #call, __FILE__, __LINE__)
+
 #ifdef OPEN_MP
     #define OPENMP_NUM_THREAD 8
 #else
-    #define OPENMP_NUM_THREAD 1
+    #define OPENMP_NUM_THREAD 1  // In case, OpenMP is operating, force to use 1 thread
 #endif
 
 #ifdef FLOAT8
@@ -30,7 +34,7 @@ typedef float real;
 #else
     #define META_NAME "N_body_meta_single.h5"       // input meta data file name 
 #endif
-#define OUTPUT_FILE_Prefix "N_body_8_thread_SIMD_N_1024_step_" // output file name(HDF5)
+#define OUTPUT_FILE_Prefix "N_body_GPU_SLOW_N_1024_step_" // output file name(HDF5)
 // Dataset names
 #define DATASETNAME_Pos  "Position"
 #define DATASETNAME_Vel  "Velocity"
@@ -65,9 +69,10 @@ typedef float real;
 #define N_DUMP_STEP     1000            // Number of dump steps
 #define N_DUMP_MAX      (N_STEP_MAX / N_DUMP_STEP) // Maximum number of dump files
 // WARNING: It is better to set BLOCK_SIZE as a multiple of 32 (Warp size in GPU)
+// GPU_BLOCK_SIZE must be a power of 2!
 #define GPU_BLOCK_SIZE  256   // max = 1024!
 // GRID_SIZE = (N_PARTICLE + BLOCK_SIZE - 1) / BLOCK_SIZE
-#define GPU_GRID_SIZE   4  // max = 65535!
+// #define GPU_GRID_SIZE   4  // max = 65535!
 
 // Gobal constants
 extern const real Gc_GravConst_mks;  // Gravitational constant in mks unit
