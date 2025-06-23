@@ -14,3 +14,4 @@ std*
 demo
 Test_Field*
 compile_private.sh
+compile_cuda_private.sh
